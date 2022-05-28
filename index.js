@@ -20,28 +20,6 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-
-function verifyJWT(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).send({ message: "UnAuthorized access" });
-    }
-    const token = authHeader.split(" ")[1];
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
-      if (err) {
-        return res.status(403).send({ message: "Forbidden access" });
-      }
-      req.decoded = decoded;
-      next();
-    });
-  }
-  
-  const auth = {
-    auth: {
-      api_key:process.env.EMAIL_SENDER_KEY,
-      domain: process.env.EMAIL_SENDER_DOMAIN,
-    },
-  };
   
 
 async function run() {
@@ -49,6 +27,8 @@ async function run() {
     await client.connect();
 
     const productsCollection = client.db("masonry").collection("products");
+    const ordersCollection = client.db("masonry").collection("orders");
+    const usersCollection = client.db("masonry").collection("users");
 
     app.get("/products", async (req, res) => {
       const query = {};
@@ -64,30 +44,31 @@ async function run() {
         res.send(product);
     });
 
-    app.get("/admin", async (req, res) => {
-        const id = req.params.id;
-        const query = {_id: ObjectId(id)};
-        const product = await productsCollection.findOne(query);
-        res.send(product);
-    });
-    app.get("/order", async (req, res) => {
-        const id = req.params.id;
-        const query = {_id: ObjectId(id)};
-        const product = await productsCollection.findOne(query);
-        res.send(product);
-    });
-    app.get("/review", async (req, res) => {
-        const id = req.params.id;
-        const query = {_id: ObjectId(id)};
-        const product = await productsCollection.findOne(query);
-        res.send(product);
-    });
-    app.get("/review", async (req, res) => {
-        const id = req.params.id;
-        const query = {_id: ObjectId(id)};
-        const product = await productsCollection.findOne(query);
-        res.send(product);
-    });
+    app.post('/orders', async (req,res)=> {
+        const orders = req.body;
+        const result = await ordersCollection.insertOne(orders);
+        res.send(result);
+    })
+    app.get('/orders', async (req,res)=> {
+        const orders = await ordersCollection.find().toArray();
+        res.send(orders);
+    })
+
+    app.post('/users', async(req,res)=>{
+        const user = req.body;
+        const result = await usersCollection.insertOne(user);
+        res.send('hello');
+    })
+    app.get('/users', async (req,res)=>{
+        const users = await usersCollection.find().toArray();
+        res.send(users);
+    })
+    app.get('/users/:email', async (req,res)=>{
+        const email = req.params.email;
+        const user = await usersCollection.findOne({email:email});
+        res.send(user);
+    })
+
   } finally {
   }
 }
